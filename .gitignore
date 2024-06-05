@@ -1,0 +1,10 @@
+.DS_Store
+.terraform/
+*.tfvars
+.vagrant/
+*.pem
+k3s_token
+kubeconfig
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.*
