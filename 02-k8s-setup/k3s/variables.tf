@@ -15,4 +15,7 @@ variable "user" {
     type = string  
 }
 
+variable "additional_k3s_args" {
+    type = string
+}
 

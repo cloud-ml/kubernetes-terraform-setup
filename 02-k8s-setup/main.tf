@@ -36,4 +36,5 @@ module "k3s" {
   private_key_path = "./vagrant_key"
   user        = "vagrant"
   nodes = local.nodes
+  additional_k3s_args = "--flannel-iface=eth1"
 }
