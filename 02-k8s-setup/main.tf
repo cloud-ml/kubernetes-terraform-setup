@@ -9,15 +9,26 @@ terraform {
 }
 
 locals {
-  number_of_nodes = 3
-  nodes = toset([
-    for i, node in range(local.number_of_nodes): {
-      name = "node-${i}"
-      host = "192.168.56.10${i+1}"
+  nodes = [
+    {
+      name = "node-1"
+      host = "192.168.56.101"
       port = 22
-      type = i <= 1 ? "server" : "agent"
-    }
-  ])
+      type = "server"
+    },
+    {
+      name = "node-2"
+      host = "192.168.56.102"
+      port = 22
+      type = "server"
+    },
+    {
+      name = "node-3"
+      host = "192.168.56.103"
+      port = 22
+      type = "server"
+    },
+  ]
 }
 
 module "k3s" {

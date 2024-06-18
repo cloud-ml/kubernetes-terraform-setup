@@ -3,15 +3,13 @@ resource "random_string" "k3s_token" {
   special = false
 }
 
-# TODO replace null_resource with data_resource
-
 resource "null_resource" "main_server" {
   triggers = {
     host        = var.nodes[0].host
     port        = var.nodes[0].port
     user        = var.user
     private_key_path = var.private_key_path
-    k3s_exec_args    = "--tls-san ${var.nodes[0].host}"
+    k3s_exec_args = "--tls-san ${var.nodes[0].host}"
   }
 
   provisioner "remote-exec" {
@@ -19,7 +17,8 @@ resource "null_resource" "main_server" {
     inline = [
       <<EOF
 curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="${self.triggers.k3s_exec_args}" K3S_TOKEN=${random_string.k3s_token.result} sh -s - server \
-    --cluster-init
+    --cluster-init \
+    --flannel-iface=eth1
 EOF
     ]
   }
@@ -34,15 +33,21 @@ EOF
 }
 
 resource "null_resource" "copy_kube_config" {
+  triggers = {
+   timestamp = timestamp()
+  }
   provisioner "local-exec" {
     when    = create
-    command = "mkdir -p ${path.root}/access; ssh -o StrictHostKeyChecking=no -p ${ var.nodes[0].port } -o UserKnownHostsFile=/dev/null -i ${var.private_key_path} ${var.user}@${var.nodes[0].host} sudo cat /etc/rancher/k3s/k3s.yaml > ${path.root}/access/kubeconfig"
+    command = "mkdir -p ${path.root}/access; ssh -o StrictHostKeyChecking=no -p ${ var.nodes[1].port } -o UserKnownHostsFile=/dev/null -i ${var.private_key_path} ${var.user}@${var.nodes[1].host} sudo cat /etc/rancher/k3s/k3s.yaml > ${path.root}/access/kubeconfig"
   }
 
-  depends_on = [ null_resource.main_server ]
+  depends_on = [ null_resource.other_nodes ]
 }
 
 resource "null_resource" "fix_kube_url" {
+  triggers = {
+   timestamp = timestamp()
+  }
   provisioner "local-exec" {
     when    = create
     command = "sed -i 's/127.0.0.1/${var.nodes[0].host}/g' ${path.root}/access/kubeconfig"
@@ -60,23 +65,25 @@ resource "null_resource" "copy_k3s_token" {
 }
 
 resource "null_resource" "other_nodes" {
-  count = length(var.nodes)
+  count = length(var.nodes) - 1
 
   triggers = {
     server_host = var.nodes[0].host
-    node_type = var.nodes[count.index].type
-    host = var.nodes[count.index].host
-    port        = var.nodes[count.index].port
+    node_type = var.nodes[count.index + 1].type
+    host = var.nodes[count.index + 1].host
+    port        = var.nodes[count.index + 1].port
     user        = var.user
     private_key_path = var.private_key_path
+    k3s_exec_args = "--tls-san ${var.nodes[count.index + 1].host}"
   }
 
   provisioner "remote-exec" {
     when = create
     inline = [
 <<EOF
-curl -sfL https://get.k3s.io | K3S_TOKEN=${random_string.k3s_token.result} sh -s - ${self.triggers.node_type} \
-    --server https://${self.triggers.server_host}:6443
+curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="${self.triggers.k3s_exec_args}" K3S_TOKEN=${random_string.k3s_token.result} sh -s - ${self.triggers.node_type} \
+    --server https://${self.triggers.server_host}:6443 \
+    --flannel-iface=eth1
 EOF
     ]
 
