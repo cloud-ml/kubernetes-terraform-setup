@@ -3,7 +3,7 @@ resource "random_string" "k3s_token" {
   special = false
 }
 
-resource "terraform_data" "main_server" {
+resource "terraform_data" "main_node" {
 
   input = {
     host        = var.nodes[0].host
@@ -118,9 +118,9 @@ EOF
 
   lifecycle {
     replace_triggered_by = [
-        terraform_data.main_server
+        terraform_data.main_node
     ]
   }
 
-  depends_on = [ terraform_data.main_server ]
+  depends_on = [ terraform_data.main_node ]
 }
