@@ -44,7 +44,7 @@ resource "terraform_data" "copy_kube_config" {
 
   provisioner "local-exec" {
     when    = create
-    command = "mkdir -p ${path.root}/access; ssh -o StrictHostKeyChecking=no -p ${ var.nodes[1].port } -o UserKnownHostsFile=/dev/null -i ${var.private_key_path} ${var.user}@${var.nodes[1].host} sudo cat /etc/rancher/k3s/k3s.yaml > ${path.root}/access/kubeconfig"
+    command = "mkdir -p ${path.root}/access; ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -p ${ var.nodes[1].port } -o UserKnownHostsFile=/dev/null -i ${var.private_key_path} ${var.user}@${var.nodes[1].host} sudo cat /etc/rancher/k3s/k3s.yaml > ${path.root}/access/kubeconfig"
   }
 
   depends_on = [ terraform_data.other_nodes ]
